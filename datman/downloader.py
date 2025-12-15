@@ -23,6 +23,8 @@ class Downloader:
         self.data_path = data_path
 
         self.skip_verify = skip_verify
+        if checksum is None:
+            self.skip_verify = True
 
     def download_and_extract(self):
         self.folder.mkdir(parents=True, exist_ok=True)
