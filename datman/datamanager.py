@@ -15,6 +15,7 @@ class DataManager:
         root,
         version_type_str,
         remote,
+        download_folder=None,
         extract_subpath=None,
         from_scratch=False,
         patch_map=None,
@@ -37,7 +38,7 @@ class DataManager:
         self.status_file_path = self.root / "STATUS"
 
         self.dv = Downloader(
-            folder=self.root,
+            folder=self.root if download_folder is None else Path(download_folder),
             data_url=remote["url"],
             filename=remote["filename"],
             checksum=remote["checksum"],
