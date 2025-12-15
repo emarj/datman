@@ -1,0 +1,12 @@
+[project]
+name = "dat-man"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "requests>=2.32.4",
+    "tqdm>=4.66.5",
+]
+
+
