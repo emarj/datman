@@ -1,3 +1,3 @@
-# Dat-Man!
+# Dat-Man! Data Manager
 
-A Dataset manager with automatic downloads, checksum verification and extraction
+Utility package that manages automatic downloads, checksum verification and archive extraction.

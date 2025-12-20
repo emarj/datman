@@ -1,32 +1,49 @@
+from typing import Callable, Literal, Union
 import requests
 import hashlib
 from tqdm import tqdm
 from pathlib import Path
 import shutil
 import zipfile
+import tarfile
+
+SupportedArchives = Literal['zip','tar']
 
 class Downloader:
+
+    fodler : Path
+    data_url : str
+    file_path : Path
+    checksum : Union[str,None]
+    extract_path : Path
+    data_path : Union[Path,None]
+    archive_type : Union[SupportedArchives,None]
+    skip_verify : bool
+
+
     def __init__(self,
-                 folder,
-                 data_url,
-                 filename,
-                 extract_path,
-                 data_path=None,
-                 checksum=None,
-                 skip_verify=False):
+                 folder : Union[str, Path],
+                 data_url: str,
+                 filename: str,
+                 extract_path: Union[str, Path],
+                 archive_type: Union[SupportedArchives, None] = None,
+                 data_path: Union[str, Path, None] = None,
+                 checksum: Union[str, None] = None,
+                 skip_verify: bool = False) -> None:
 
         self.folder = Path(folder)
         self.data_url = data_url
         self.file_path = self.folder / filename
         self.checksum = checksum
         self.extract_path = Path(extract_path)
-        self.data_path = data_path
+        self.data_path = Path(data_path) if data_path is not None else None
+        self.archive_type = archive_type
 
         self.skip_verify = skip_verify
         if checksum is None:
             self.skip_verify = True
 
-    def download_and_extract(self):
+    def download_and_extract(self) -> None:
         self.folder.mkdir(parents=True, exist_ok=True)
 
         # Download zip if not present or checksum fails
@@ -43,10 +60,10 @@ class Downloader:
         
         self.extract()
     
-    def verify(self, file_path):
+    def verify(self, file_path : Path) -> bool:
         return verify_checksum(file_path, self.checksum, self.skip_verify)
     
-    def extract(self):
+    def extract(self) -> None:
 
         if not self.file_path.exists():
             # we check this before deleting anything
@@ -60,14 +77,11 @@ class Downloader:
 
         self.extract_path.mkdir(parents=True, exist_ok=True)
 
-        with zipfile.ZipFile(self.file_path, "r") as zip_ref:
-            file_list = zip_ref.namelist()
-            for file in tqdm(file_list, desc="Extracting", disable=False):
-                zip_ref.extract(file, self.extract_path)
+        extract(self.file_path, self.extract_path)
     
 ################# Helper functions #################
 
-def verify_checksum(file_path, expected_digest, skip):
+def verify_checksum(file_path : Union[str, Path], expected_digest: Union[str, None], skip: bool) -> bool:
     if skip:
         return True
 
@@ -88,7 +102,8 @@ def verify_checksum(file_path, expected_digest, skip):
     # normalize and compare
     return actual.lower() == digest.lower()
 
-def checksum(file_path, algorithm="sha256"):
+def checksum(file_path: Union[str, Path], algorithm : str = "sha256") -> str:
+    file_path = Path(file_path)
     # support common algorithms
     alg = algorithm.lower()
     if alg not in hashlib.algorithms_available and alg not in {"md5","sha1","sha256","sha512"}:
@@ -115,7 +130,8 @@ def checksum(file_path, algorithm="sha256"):
             hasher.update(chunk)
     return hasher.hexdigest()
 
-def download(url, file_path, verify_checksum_func):
+def download(url: str, file_path: Union[str, Path], verify_checksum_func: Callable) -> None:
+    file_path = Path(file_path)
     tmp_path = file_path.with_suffix(".zip.part")  # Temporary download file
 
     print(f"Downloading {url} ...")
@@ -137,3 +153,34 @@ def download(url, file_path, verify_checksum_func):
         raise RuntimeError("Downloaded file checksum does not match! Try downloading again. If the problem persists, set skip_verify=True at your own risk.")
 
     tmp_path.rename(file_path)  # rename only after successful download
+
+def extract(file_path: Union[str, Path], extract_path: Union[str, Path], archive_type : Union[Literal['zip','tar'], None] = None ) -> None:
+    file_path = Path(file_path)
+    if archive_type is None:
+        # detect from file extension
+        archive_type = detect_archive_type(file_path)
+
+
+    if archive_type == 'zip':
+        with zipfile.ZipFile(file_path, "r") as zip_ref:
+            file_list = zip_ref.namelist()
+            for file in tqdm(file_list, desc="Extracting", disable=False):
+                zip_ref.extract(file, extract_path)
+    elif archive_type == 'tar':
+        with tarfile.open(file_path, "r:*") as tar_ref:
+            file_list = tar_ref.getmembers()
+            for member in tqdm(file_list, desc="Extracting", disable=False):
+                tar_ref.extract(member, extract_path)
+    else:
+        raise ValueError(f"Archive of type '{archive_type}' is not supported.")
+
+def detect_archive_type(file_path: Union[str, Path]) -> SupportedArchives:
+    file_path = Path(file_path)
+    suffixes = file_path.suffixes
+
+    if '.zip' in suffixes:
+        return 'zip'
+    elif '.tar' in suffixes or '.tgz' in suffixes or '.tar.gz' in suffixes:
+        return 'tar'
+    else:
+        raise ValueError(f"Unsupported archive file extension {''.join(suffixes)} for file {file_path}")

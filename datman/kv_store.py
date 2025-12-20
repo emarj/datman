@@ -1,6 +1,8 @@
 ##### Utility functions for key-value file handling
+from pathlib import Path
+from typing import Union
 
-def load_kv(file_path:str) -> dict:
+def load_kv(file_path : Union[str,Path]) -> dict:
     data = {}
     try:
         with open(file_path, "r") as f:
@@ -15,7 +17,7 @@ def load_kv(file_path:str) -> dict:
     return data
 
 
-def save_kv(file_path:str, data:dict) -> None:
+def save_kv(file_path : Union[str,Path], data : dict) -> None:
     with open(file_path, "w") as f:
         for key, value in data.items():
             f.write(f"{key}:{value}\n")
