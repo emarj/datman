@@ -56,7 +56,8 @@ class SimpleCache():
     def __init__(self,
                  root: Union[str, Path],
                  backend: IOBackend,
-                 keep_in_memory: bool = True):
+                 keep_in_memory: bool = True,
+                 ):
         
         self.backend = backend
         self.root = Path(root)
@@ -70,7 +71,7 @@ class SimpleCache():
         self.data_path.mkdir(parents=True, exist_ok=True)
 
         if self.index_path.exists():
-            self.index = load_kv(self.index_path)
+            self.index = load_kv(self.index_path,True)
 
 
     def __len__(self) -> int:
@@ -81,10 +82,11 @@ class SimpleCache():
     
     def __setitem__(self, key: Union[str, int], data: dict) -> None:
         self.save(key, data)
-        
-    def save(self, key: Union[str, int], data: dict) -> None:
+
+    
+    def _save(self, key: Union[str, int], data: dict) -> None:
         if isinstance(key, int):
-            self.index[key] = str(key)
+            self.index[key] = f'sample_{key}'
         else:
             self.index[len(self.index)] = key if isinstance(key, str) else str(key)
 
@@ -93,11 +95,18 @@ class SimpleCache():
         if self.keep_in_memory:
             self.cache[key] = data
         
+        
+    def save(self, key: Union[str, int], data: dict) -> None:
+        self._save(key, data)
+        
+        self.save_index()
+    
+    def save_index(self) -> None:
         save_kv(self.index_path, self.index)
             
     def load(self, key: Union[str, int]) -> dict:
         if isinstance(key, int):
-            key = self.index[str(key)]
+            key = self.index[key]
 
         if key in self.cache:
             return self.cache[key]

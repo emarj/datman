@@ -2,7 +2,7 @@
 from pathlib import Path
 from typing import Union
 
-def load_kv(file_path : Union[str,Path]) -> dict:
+def load_kv(file_path : Union[str,Path], int_key: bool = False) -> dict:
     data = {}
     try:
         with open(file_path, "r") as f:
@@ -10,6 +10,8 @@ def load_kv(file_path : Union[str,Path]) -> dict:
                 line = line.strip()
                 if line:
                     key, value = line.split(":", 1)
+                    if int_key:
+                        key = int(key)
                     data[key] = value
     except Exception as e:
         raise RuntimeError(f"Error reading key-value file {file_path}: {e}")
