@@ -42,6 +42,9 @@ class DataManager:
 
         if not self.root.exists():
             self.root.mkdir(parents=True, exist_ok=False)
+        elif not self.status_file_path.exists() and not self.data_path.exists():
+            raise UserWarning(f"DataManager root folder {self.root} exists and is not empty, but STATUS file is missing. \
+                              This may lead to inconsistent states. Please check the folder contents or specify a empty/new folder.")
 
         self.write_readme()
 
